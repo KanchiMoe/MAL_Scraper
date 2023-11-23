@@ -7,5 +7,7 @@
     "id": 1,
     "en_name": "Example",
     "jp_name": "例",
-    "established": "01 Jan 1970"
+    "established": "01 Jan 1970",
+    "member_favorites": 0,
+    "description": "Example"
 }
