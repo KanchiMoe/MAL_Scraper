@@ -9,5 +9,13 @@
     "jp_name": "例",
     "established": "01 Jan 1970",
     "member_favorites": 0,
-    "description": "Example"
+    "description": "Example",
+    "amounts": {
+        "all": 0,
+        "tv": 0,
+        "ona": 0,
+        "ova": 0,
+        "movie": 0,
+        "others": 0
+    }
 }

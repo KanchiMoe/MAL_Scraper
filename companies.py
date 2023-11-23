@@ -8,7 +8,7 @@ import requests
 import time
 
 LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
-logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
 
 def companies_start(ROOT_URL):
     start_number = 7
@@ -39,9 +39,15 @@ def companies_200(page_number, soup):
 
     EN_NAME = company_get_en_name(soup)
     sidebar_data = company_get_sidebar_data(soup)
+    amounts = company_get_anime_numbers(soup, page_number)
+
+    # Debug logging
+    logging.debug(f"EN_NAME: {EN_NAME}")
+    logging.debug(f"SIDEBAR: {sidebar_data}")
+    logging.debug(f"AMOUNTS: {amounts}")
 
     # Pass the data to be saved to a file
-    company_save_data(page_number, en_name=EN_NAME, sidebar_data=sidebar_data)
+    company_save_data(page_number, en_name=EN_NAME, sidebar_data=sidebar_data, amounts=amounts)
 
 def company_get_en_name(soup):
     # Get English name from page header
@@ -75,9 +81,23 @@ def company_get_sidebar_data(soup):
     else:
         raise RuntimeError(f"Second div with class 'mb16' not found in the soup.") 
 
+def company_get_anime_numbers(soup, page_number):
+    result = {}
+    valid_keys = {'all', 'tv', 'ona', 'ova', 'movie', 'other'}
+
+    for li in soup.select('li.js-btn-anime-type'):
+        key = li.text.split('(')[0].strip().lower()  # Extract the key from the text
+        if key not in valid_keys:
+            raise IndexError(f"Invalid key: {key}. Expected one of {valid_keys}. Page: {page_number}")
+
+        value = int(li.text.split('(')[-1].split(')')[0])  # Extract the numeric value between parentheses
+        result[key] = value
+
+    return result
+
 def companies_404(page_number, consecutive_404_count):
     logging.info(f"Response: 404")
-    company_save_data(page_number, en_name=None, sidebar_data={})
+    company_save_data(page_number, en_name=None, sidebar_data={}, amounts={})
 
     # Count how many 404's there has been in a row.
     # if >= 5, throw an error
@@ -85,7 +105,7 @@ def companies_404(page_number, consecutive_404_count):
     if consecutive_404_count >= max_consecutive_404:
         raise IndexError(f"Reached {max_consecutive_404} consecutive 404 responses.")
 
-def company_save_data(page_number, en_name, sidebar_data):
+def company_save_data(page_number, en_name, sidebar_data, amounts):
     # Set where to save the json files
     directory = "data/company"
     filename = f"{page_number}.json"
@@ -106,6 +126,8 @@ def company_save_data(page_number, en_name, sidebar_data):
         "status": 404 if isinstance(sidebar_data, dict) else 200,
         "updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
+
+    template_data["amounts"] = amounts if amounts else {"all": 0, "tv": 0, "ona": 0, "ova": 0, "movie": 0, "others": 0}
 
     # Convert sidebar_data to a dictionary if it's a string
     if isinstance(sidebar_data, str):
