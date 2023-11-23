@@ -34,18 +34,19 @@ def companies_start(ROOT_URL):
         time.sleep(sleep_time)
 
 def companies_200(page_number, soup):
-    logging.info(f"Response 200 for {page_number}")
+    logging.info(f"Response: 200")
 
     EN_NAME = company_get_en_name(soup)
     sidebar_data = company_get_sidebar_data(soup)
 
     # Pass the data to be saved to a file
-    company_save_data(page_number, en_name=EN_NAME)
+    company_save_data(page_number, en_name=EN_NAME, sidebar_data=sidebar_data)
 
 def company_get_en_name(soup):
-    en_name_element = soup.find("h1", class_="title-name")
-    if en_name_element:
-        print(en_name_element.get_text())
+    # Get English name from page header
+    producer_name_element = soup.find("h1", class_="title-name")
+    if producer_name_element:
+        return producer_name_element.get_text()
     
 def company_get_sidebar_data(soup):
     mb16_elements = soup.find_all('div', class_='mb16')
@@ -65,7 +66,7 @@ def company_get_sidebar_data(soup):
             else:
                 # Handle keyless value
                 keyless_value = element.get_text(strip=True)
-                data['Keyless'] = keyless_value
+                data['Description'] = keyless_value
 
         json_data = json.dumps(data, indent=2, ensure_ascii=False)
 
@@ -74,8 +75,8 @@ def company_get_sidebar_data(soup):
         raise RuntimeError(f"Second div with class 'mb16' not found in the soup.") 
 
 def companies_404(page_number, consecutive_404_count):
-    logging.info(f"Response 404 for {page_number}")
-    company_save_data(page_number)
+    logging.info(f"Response: 404")
+    company_save_data(page_number, en_name=None, sidebar_data={})
 
     # Count how many 404's there has been in a row.
     # if >= 5, throw an error
@@ -83,7 +84,7 @@ def companies_404(page_number, consecutive_404_count):
     if consecutive_404_count >= max_consecutive_404:
         raise IndexError(f"Reached {max_consecutive_404} consecutive 404 responses.")
 
-def company_save_data(page_number):
+def company_save_data(page_number, en_name, sidebar_data):
     # Set where to save the json files
     directory = "data/company"
     filename = f"{page_number}.json"
@@ -98,9 +99,33 @@ def company_save_data(page_number):
     with open(template_file_path, "r") as template_file:
         template_data = json.load(template_file)
 
+    # Set the data 
     template_data["id"] = page_number
     template_data["metadata"]["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # Convert sidebar_data to a dictionary if it's a string
+    if isinstance(sidebar_data, str):
+        try:
+            sidebar_data = json.loads(sidebar_data)
+        except json.JSONDecodeError:
+            # Handle the case where sidebar_data is not valid JSON
+            print("Error decoding sidebar_data as JSON")
+            sidebar_data = {}
 
-    with open(filepath, "w") as json_file:
-        json.dump(template_data, json_file, indent=2)
+    if en_name and isinstance(sidebar_data, dict):
+        template_data["metadata"]["status"] = 200
+        template_data["en_name"] = en_name
+        template_data["jp_name"] = sidebar_data["Japanese"] if "Japanese" in sidebar_data else None
+        template_data["established"] = sidebar_data["Established"] if "Established" in sidebar_data else None
+        template_data["member_favorites"] = int(sidebar_data.get("Member Favorites", "").replace(",", "")) if sidebar_data.get("Member Favorites", "").replace(",", "").isdigit() else None
+        template_data["description"] = sidebar_data["Description"] if "Description" in sidebar_data else None
+    else:
+        template_data["metadata"]["status"] = 404
+        template_data["en_name"] = None
+        template_data["jp_name"] = None
+        template_data["established"] = None
+        template_data["member_favorites"] = None
+        template_data["description"] = None
+
+    with open(filepath, "w", encoding="utf-8") as json_file:
+        json.dump(template_data, json_file, indent=2, ensure_ascii=False)
