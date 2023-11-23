@@ -39,7 +39,8 @@ def companies_200(page_number, soup):
     EN_NAME = company_get_en_name(soup)
     sidebar_data = company_get_sidebar_data(soup)
 
-    print(sidebar_data)
+    # Pass the data to be saved to a file
+    company_save_data(page_number, en_name=EN_NAME)
 
 def company_get_en_name(soup):
     en_name_element = soup.find("h1", class_="title-name")
@@ -76,29 +77,30 @@ def companies_404(page_number, consecutive_404_count):
     logging.info(f"Response 404 for {page_number}")
     company_save_data(page_number)
 
+    # Count how many 404's there has been in a row.
+    # if >= 5, throw an error
     max_consecutive_404 = 5
     if consecutive_404_count >= max_consecutive_404:
         raise IndexError(f"Reached {max_consecutive_404} consecutive 404 responses.")
 
 def company_save_data(page_number):
+    # Set where to save the json files
     directory = "data/company"
     filename = f"{page_number}.json"
     filepath = os.path.join(directory, filename)
 
+    # If the path doesn't exist, create it
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+    # Open a template file
     template_file_path = "data/templates/company.json"
     with open(template_file_path, "r") as template_file:
         template_data = json.load(template_file)
 
     template_data["id"] = page_number
     template_data["metadata"]["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    template_data["metadata"]["status"] = 404
 
-    template_data["en_name"] = None
-    template_data["jp_name"] = None
-    template_data["established"] = None
 
     with open(filepath, "w") as json_file:
         json.dump(template_data, json_file, indent=2)
