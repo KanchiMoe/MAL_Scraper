@@ -30,6 +30,7 @@ def companies_start(ROOT_URL):
             consecutive_404_count += 1
             companies_404(page_number, consecutive_404_count)
         else:
+            # Throw error if any other response
             print(f"Error, got {response_code} at {url}")
         time.sleep(sleep_time)
 
@@ -101,7 +102,10 @@ def company_save_data(page_number, en_name, sidebar_data):
 
     # Set the data 
     template_data["id"] = page_number
-    template_data["metadata"]["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    template_data["metadata"] = {
+        "status": 404 if isinstance(sidebar_data, dict) else 200,
+        "updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
 
     # Convert sidebar_data to a dictionary if it's a string
     if isinstance(sidebar_data, str):
@@ -113,19 +117,18 @@ def company_save_data(page_number, en_name, sidebar_data):
             sidebar_data = {}
 
     if en_name and isinstance(sidebar_data, dict):
-        template_data["metadata"]["status"] = 200
         template_data["en_name"] = en_name
         template_data["jp_name"] = sidebar_data["Japanese"] if "Japanese" in sidebar_data else None
         template_data["established"] = sidebar_data["Established"] if "Established" in sidebar_data else None
         template_data["member_favorites"] = int(sidebar_data.get("Member Favorites", "").replace(",", "")) if sidebar_data.get("Member Favorites", "").replace(",", "").isdigit() else None
         template_data["description"] = sidebar_data["Description"] if "Description" in sidebar_data else None
     else:
-        template_data["metadata"]["status"] = 404
         template_data["en_name"] = None
         template_data["jp_name"] = None
         template_data["established"] = None
         template_data["member_favorites"] = None
         template_data["description"] = None
 
+    # Save the data to a file
     with open(filepath, "w", encoding="utf-8") as json_file:
         json.dump(template_data, json_file, indent=2, ensure_ascii=False)
