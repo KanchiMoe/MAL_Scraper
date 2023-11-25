@@ -9,9 +9,8 @@ import time
 LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
 
-def companies_start(root_url: str, ):
+def companies_start(root_url: str, end_number: int):
     start_number = 1
-    end_number = 3000
     sleep_time = 1
     consecutive_404_count = 0    
 
