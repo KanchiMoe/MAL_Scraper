@@ -9,14 +9,14 @@ import time
 LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
 
-def companies_start(ROOT_URL):
-    start_number = 7
-    end_number = 20
+def companies_start(root_url: str, ):
+    start_number = 1
+    end_number = 3000
     sleep_time = 1
     consecutive_404_count = 0    
 
     for page_number in range(start_number, end_number):
-        url = f"{ROOT_URL}/anime/producer/{page_number}"
+        url = f"{root_url}/anime/producer/{page_number}"
         logging.info(f"Requesting {url}")
         response = requests.get(url)
         response_code = response.status_code
