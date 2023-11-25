@@ -10,8 +10,8 @@ LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
 
 def companies_start(ROOT_URL):
-    start_number = 7
-    end_number = 20
+    start_number = 1
+    end_number = 3000
     sleep_time = 1
     consecutive_404_count = 0    
 
@@ -28,6 +28,8 @@ def companies_start(ROOT_URL):
         elif response_code == 404:
             consecutive_404_count += 1
             companies_404(page_number, consecutive_404_count)
+        elif response_code == 429:
+            companies_429(url)
         else:
             # Throw error if any other response
             print(f"Error, got {response_code} at {url}")
@@ -153,3 +155,12 @@ def company_save_data(page_number, en_name, sidebar_data, amounts):
     # Save the data to a file
     with open(filepath, "w", encoding="utf-8") as json_file:
         json.dump(template_data, json_file, indent=2, ensure_ascii=False)
+
+
+def companies_429(url):
+    # We've been ratelimited.
+    # For now, throw error.
+    # todo: increase sleep time
+    msg = f"We've been rate limited. Last page: {url}"
+    logging.critical(msg)
+    raise RuntimeError(msg)
