@@ -1,4 +1,4 @@
-from companies import companies_start
+from src.companies import companies_start
 
 ROOT_URL = "https://myanimelist.net"
 
