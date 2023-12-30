@@ -5,9 +5,13 @@ import logging
 import os
 import requests
 import time
+from src.mal import MAL, MAL_http_handler
 
 LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
+MAL = MAL()
+MAL_HTTP = MAL_http_handler()
+
 
 def companies_start(root_url: str, end_number: int):
     start_number = 1
@@ -20,18 +24,15 @@ def companies_start(root_url: str, end_number: int):
         response = requests.get(url)
         response_code = response.status_code
 
-        if response_code == 200:
-            soup = BeautifulSoup(response.text, "html.parser")
-            companies_200(page_number, soup)
-            consecutive_404_count = 0
-        elif response_code == 404:
-            consecutive_404_count += 1
-            companies_404(page_number, consecutive_404_count)
-        elif response_code == 429:
-            companies_429(url)
-        else:
-            # Throw error if any other response
-            print(f"Error, got {response_code} at {url}")
+        MAL_HTTP.http_response_handler(response_code, url)
+
+        #if response_code == 200:
+        #    soup = BeautifulSoup(response.text, "html.parser")
+        #    companies_200(page_number, soup)
+        #    consecutive_404_count = 0
+        #elif response_code == 404:
+        #    consecutive_404_count += 1
+        #    companies_404(page_number, consecutive_404_count)
         time.sleep(sleep_time)
 
 def companies_200(page_number, soup):
@@ -154,10 +155,3 @@ def company_save_data(page_number, en_name, sidebar_data, amounts):
     # Save the data to a file
     with open(filepath, "w", encoding="utf-8") as json_file:
         json.dump(template_data, json_file, indent=2, ensure_ascii=False)
-
-def companies_429(url: str):
-    # We've been ratelimited, for now, throw an error.
-    # todo: increase sleep time
-    msg = f"We've been rate limited. Last page: {url}"
-    logging.critical(msg)
-    raise RuntimeError(msg)
